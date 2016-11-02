@@ -1762,6 +1762,7 @@ object {
 		padding-bottom: 30px;
 		margin: auto;
 		margin-bottom: 40px;
+		min-height: 0;
 	}
 	#header-image {
 		width: 100%;
