@@ -33,7 +33,7 @@
 						/* translators: %s: Name of current post */
 						esc_html__( 'Edit %s', 'your-place' ),
 						the_title( '<span class="screen-reader-text">"', '"</span>', false )
-					),
+					)
 				);
 			?>
 		</footer><!-- .entry-footer -->

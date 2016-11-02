@@ -37,7 +37,7 @@ get_header(); ?>
 						<img src="<?php echo get_template_directory_uri(); ?>/images/get-involved.png" alt="Thumbs Up" />
 						<p><?php echo $column_1_text; ?></p>
 						<p><?php echo $column_1_text_2; ?></p>
-						<a class="button" href="<?php echo home_url(); ?>/what-we-do/weekly-activities">Weekly Activities</a>
+						<a class="button" href="<?php echo home_url(); ?>/weekly-activities">Weekly Activities</a>
 						<p><?php echo $column_1_text_3; ?></p>
 						<a class="button" href="<?php echo home_url(); ?>/oasis-garden">Oasis Garden</a>
 					</div>
@@ -54,7 +54,7 @@ get_header(); ?>
 						<img src="<?php echo get_template_directory_uri(); ?>/images/news-events.png" alt="Magnifying Glass" />
 						<p><?php echo $column_3_text; ?></p>
 						<p><?php echo $column_3_text_2; ?></p>
-						<a class="button" href="<?php echo home_url(); ?>/what-we-do/special-events">Special Events</a>
+						<a class="button" href="<?php echo home_url(); ?>/special-events">Special Events</a>
 					</div>
 					
 				</div><!-- .entry-content -->
