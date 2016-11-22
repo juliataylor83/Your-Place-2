@@ -32,7 +32,7 @@ jQuery( document ).ready(function($) {
 	////////////////
 	//	LOAD VARIABLES FROM PHP
 	////////////////
-		
+	
 	var scoreString = $( '.fca_qc_score_text').first().html()
 	var svg_square = '<svg class="fca_qc_rectancle" width="26" height="26"><rect width="26" height="26" style="fill:#fff;stroke-width:1;stroke:#000;"></rect></svg>'
 
@@ -128,7 +128,7 @@ jQuery( document ).ready(function($) {
 	
 	$( '.fca_qc_start_button' ).click(function() {
 		
-		var thisQuiz =  quizzes[ get_quiz_id( this.parentNode ) ]
+		var thisQuiz =  quizzes[ get_quiz_id( $(this).closest('.fca_qc_quiz') ) ]
 		
 		add_activity( thisQuiz.ajaxurl, thisQuiz.nonce, thisQuiz.quiz_id, 'starts' )
 		
@@ -186,6 +186,27 @@ jQuery( document ).ready(function($) {
 		scrollQuizInToView( thisQuiz.selector )
 		$( this ).blur()
 		
+		var question_id = $(this).closest('#fca_qc_answer_container').data('id')
+		var response_id = $(this).data('id')
+		
+		var isCorrect = false
+		
+		//STORE RESULT
+		if ( $( this ).attr('data-question') === thisQuiz.currentAnswer ) {
+			thisQuiz.score = thisQuiz.score + 1
+			isCorrect = true
+		}
+		var response = {
+			"answer": addQuizImg( $( this ).children('.fca_qc_quiz_answer_img').attr('src') ) + $( this ).children('.fca_qc_answer_span').html().replace(svg_square, ''),
+			"isCorrect": isCorrect,
+			"correctAnswer": get_correct_answer_html( thisQuiz ),
+			"question": $(this).siblings('#fca_qc_question').html()
+		}
+		
+		thisQuiz.responses.push( response )
+		
+		add_response( thisQuiz.ajaxurl, thisQuiz.nonce, thisQuiz.quiz_id, question_id, response_id )
+		
 		if ( thisQuiz.quiz_settings.quiz_type == 'pt' ) {
 			//PERSONALITY QUIZZES
 		
@@ -205,25 +226,8 @@ jQuery( document ).ready(function($) {
 			showQuestion( thisQuiz )
 			
 		} else {
-			var isCorrect = false
-			//STANDARD QUIZZES
-			if ( $( this ).attr('data-question') == thisQuiz.currentAnswer ) {
-				thisQuiz.score = thisQuiz.score + 1
-				isCorrect = true
-			}
 		
-			if ( thisQuiz.hideAnswers == 'end' ) {
-				var response = {
-					"answer": addQuizImg( $( this ).children('.fca_qc_quiz_answer_img').attr('src') ) + $( this ).children('.fca_qc_answer_span').html().replace(svg_square, ''),
-					"isCorrect": isCorrect,
-					"correctAnswer": get_correct_answer_html( thisQuiz ),
-				}
-				
-				thisQuiz.responses.push( response )
-				
-				showQuestion( thisQuiz )
-
-			} else if ( thisQuiz.hideAnswers == 'after' ) {
+			if ( thisQuiz.hideAnswers == 'after' ) {
 				
 				//SHOW THE CORRECT ANSWER
 				$( thisQuiz.selector ).find( '#fca_qc_your_answer' ).html( addQuizImg ( $( this ).children('.fca_qc_quiz_answer_img').attr('src')) + $( this ).children('.fca_qc_answer_span').html().replace(svg_square,'') )
@@ -288,6 +292,8 @@ jQuery( document ).ready(function($) {
 			var img = quiz.questions[quiz.currentQuestion].img
 			$( quiz.selector ).find( '#fca_qc_answer_container' ).find( '.fca_qc_quiz_question_img' ).attr( 'src', img )
 			$( quiz.selector ).find( '#fca_qc_back_container' ).find( '.fca_qc_quiz_question_img' ).attr( 'src', img )
+			$( quiz.selector ).find( '#fca_qc_answer_container' ).data( 'id', quiz.questions[quiz.currentQuestion].id )
+			
 			
 			var answer
 			if ( quiz.quiz_settings.quiz_type == 'mc' ) {
@@ -319,6 +325,7 @@ jQuery( document ).ready(function($) {
 						
 					$( quiz.selector ).find( '.fca_qc_answer_div' ).eq(i).find('.fca_qc_quiz_answer_img').attr( 'src', shuffled_answers[i].img )
 					$( quiz.selector ).find( '.fca_qc_answer_div' ).eq(i).find('.fca_qc_answer_span').html( svg_square + shuffled_answers[i].answer )
+					$( quiz.selector ).find( '.fca_qc_answer_div' ).eq(i).data( 'id', shuffled_answers[i].id )
 					$( quiz.selector ).find( '.fca_qc_answer_div' ).eq(i).show()
 				}
 		
@@ -577,7 +584,7 @@ jQuery( document ).ready(function($) {
 			show_sharing_and_result_screen( quiz, set_result( quiz ) )
 		}
 	}
-	
+
 	function show_optins ( quiz ) {
 		//SET RESULT
 		var result = set_result( quiz )
@@ -591,7 +598,6 @@ jQuery( document ).ready(function($) {
 		$( quiz.selector ).find( '.fca_qc_skip_email_button' ).click(function(){
 			$( quiz.selector ).find( '.fca_qc_optin_container' ).hide()
 			$( quiz.selector ).find( '.fca_qc_optin_input' ).tooltipster('close')
-			
 			show_sharing_and_result_screen ( quiz, result )			
 		})
 		
@@ -612,6 +618,11 @@ jQuery( document ).ready(function($) {
 			if ( email_validated && name_validated ) {
 				$(document).unbind('keypress')
 				$( quiz.selector ).find( '.fca_qc_optin_input' ).tooltipster('close')
+								
+				quiz.user = {
+					name : user_name,
+					email : user_email
+				}
 				
 				add_to_mailing_list( quiz.ajaxurl, quiz.quiz_id, quiz.nonce, user_email, user_name, result )
 				
@@ -739,12 +750,55 @@ jQuery( document ).ready(function($) {
 		})
 	}
 	
+	function add_response( ajaxurl, nonce, post_id, question_id, response_id ) {
+		$.ajax({
+			url: ajaxurl,
+			type: 'POST',
+			data: {
+				nonce: nonce,
+				quiz_id: post_id,
+				question: question_id,
+				response: response_id,
+				action: 'fca_qc_add_response_ajax'
+			}
+		}).done( function( returnedData ) {
+			console.log ( returnedData )
+		})
+	}
+	
+	function send_responses( quiz, result ) {
+		var name = ''
+		var email = ''
+		if ( quiz.hasOwnProperty('user')  ) {
+			name = quiz.user.name
+			email = quiz.user.email
+		}
+		$.ajax({
+			url: quiz.ajaxurl,
+			type: 'POST',
+			data: {
+				nonce: quiz.nonce,
+				quiz_id: quiz.quiz_id,
+				name: name,
+				email: email,
+				result: result,
+				responses: quiz.responses,
+				action: 'fca_qc_send_responses_ajax'
+			}
+		}).done( function( returnedData ) {
+			console.log ( returnedData )
+		})
+	}
+	
 	function restart_quiz ( quiz ) {
 		//yolo
 		location.reload()
 	}
 	
 	function show_sharing_and_result_screen ( quiz, result ) {
+		
+		send_responses ( quiz, result )
+		
 		$( quiz.selector ).find( '.fca_qc_score_container' ).show()
 		
 		if ( quiz.quiz_settings.restart_button == 'on' ) {
@@ -761,6 +815,8 @@ jQuery( document ).ready(function($) {
 		if ( quiz.quiz_settings.show_sharing == 'on' ) {
 			show_sharing( quiz, result )
 		}
+		
+		
 	}
 	
 	function get_correct_answer_html ( quiz ) {

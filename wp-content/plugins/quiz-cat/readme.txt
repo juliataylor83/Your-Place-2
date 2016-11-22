@@ -8,7 +8,7 @@ Requires at least: 4.0
 Tested up to: 4.6.1
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
-Stable tag: 1.2.3
+Stable tag: 1.3.1
 
 Quiz Cat Lets You Create Beautiful Viral BuzzFeed-style Quizzes That Drive Social Shares & User Engagement. Set It Up In 2 Minutes.
 
@@ -16,7 +16,7 @@ Quiz Cat Lets You Create Beautiful Viral BuzzFeed-style Quizzes That Drive Socia
 
 > #### Quiz Cat Live Demo
 >Wanna demo our viral quiz builder?
-> [Click here to view a live demo >>](https://fatcatapps.com/quizcat)
+> [Click here to view a live demo >>](https://fatcatapps.com/quizcat/demos)
 
 You’re not playing around, are you?
 
@@ -164,6 +164,10 @@ add_filter( 'fca_qc_quiz_text', 'my_quiz_callback_filter' );`
 
 
 == Changelog ==
+
+= Quiz Cat 1.3.1 =
+* Fix missing 'No Quiz found' text
+* Add upgrade menu link
 
 = Quiz Cat 1.2.3 =
 * Added shortcodes to change various quiz text (e.g. Start Quiz)

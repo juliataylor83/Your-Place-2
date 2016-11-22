@@ -8,7 +8,7 @@
 	Author: Fatcat Apps
 	Author URI: https://fatcatapps.com/
 	License: GPLv2
-	Version: 1.2.3
+	Version: 1.3.1 
 */
 
 
@@ -20,7 +20,7 @@ defined( 'ABSPATH' ) or die( 'Unauthorized Access!' );
 if ( !defined ('FCA_QC_PLUGIN_DIR') ) {
 	
 	// DEFINE SOME USEFUL CONSTANTS
-	define( 'FCA_QC_PLUGIN_VER', '1.2.3' );
+	define( 'FCA_QC_PLUGIN_VER', '1.3.1' );
 	define( 'FCA_QC_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 	define( 'FCA_QC_PLUGINS_URL', plugins_url( '', __FILE__ ) );
 	define( 'FCA_QC_PLUGIN_FILE', __FILE__ );
@@ -40,8 +40,13 @@ if ( !defined ('FCA_QC_PLUGIN_DIR') ) {
 	}
 	if ( file_exists ( FCA_QC_PLUGIN_DIR . '/premium/licensing.php' ) ) {
 		include_once( FCA_QC_PLUGIN_DIR . '/premium/licensing.php' );
+	}	
+	if ( file_exists ( FCA_QC_PLUGIN_DIR . '/premium/stats.php' ) ) {
+		include_once( FCA_QC_PLUGIN_DIR . '/premium/stats.php' );
 	}
-	
+	if ( file_exists ( FCA_QC_PLUGIN_DIR . '/includes/upgrade.php' ) ) {
+		include_once( FCA_QC_PLUGIN_DIR . '/includes/upgrade.php' );
+	}	
 	//FILTERABLE FRONT-END STRINGS
 	$global_quiz_text_strings = array (
 		'no_quiz_found' => __('No Quiz found', 'quiz-cat'),
@@ -66,67 +71,36 @@ if ( !defined ('FCA_QC_PLUGIN_DIR') ) {
 	//ACTIVATION HOOK
 	function fca_qc_activation() {
 		
-		//CREATE DB IF IT DOESNT EXIST
-		if ( function_exists( 'fca_qc_create_table' ) && !defined ( 'fca_qc_disable_activity' ) ) {
-			fca_qc_create_table();
-		}
-			
 		$args = array(
 			'post_type' => 'fca_qc_quiz',
-			'post_status' => array('publish', 'pending', 'draft', 'auto-draft', 'future', 'private', 'inherit', 'trash'),
-			'posts_per_page'=> -1, 
+			'posts_per_page'=> -1,
 		);
-		
+			
 		$posts = get_posts( $args );
 		
-		forEach ( $posts as $post ) {
-			$settings = get_post_meta( $post->ID, 'quiz_cat_settings', true );
-			
-			//set default quiz type to 'mc' for multiple choice
-			$settings['quiz_type'] = empty ( $settings['quiz_type'] ) ? 'mc' : $settings['quiz_type'];
-			
-			update_post_meta ( $post->ID, 'quiz_cat_settings', $settings );
-			
-			//convert answer metadata from old format to new
-			$questions = get_post_meta( $post->ID, 'quiz_cat_questions', true );
+		//convert answer metadata from old format to new
+		fca_qc_convert_question_meta( $posts );
+		
+		//convert CSV from old format to new
+		fca_qc_convert_csv();
 
-			if ( !empty ( $questions[0]['answer'] ) ) {
-				$new_questions = array();
+		//CREATE TABLE IF IT DOESNT EXIST
+		if ( function_exists ('fca_qc_table') ) {
+			
+			global $wpdb;
+			$new_table_name = fca_qc_table();
+		
+			if( $wpdb->get_var("SHOW TABLES LIKE '$new_table_name'") === null && !defined ( 'fca_qc_disable_activity' ) ) {
 				
-				foreach ( $questions as $question ) {
-					
-					$answers = array(
-						array(
-							'answer' => empty ( $question['answer'] ) ? '' : $question['answer'],
-							'img' => empty ( $question['imgAnswer1'] ) ? '' : $question['imgAnswer1'],
-						)
-					);
-					
-					for ( $i = 1; $i < 4; $i++ ) {
-						$answerKey = "wrong$i";
-						$imgKey = "imgAnswer" . ( $i + 1 );
-						if ( !empty ( $question[$answerKey] ) OR !empty( $question[$imgKey] ) ) {
-							$answers[] = array(
-								'answer' => empty ( $question[$answerKey] ) ? '' : $question[$answerKey],
-								'img' => empty ( $question[$imgKey] ) ? '' : $question[$imgKey],
-							);
-						}
-					}
-						
-					$new_questions[] = array(
-						'question' => empty ( $question['question'] ) ? '' : $question['question'],
-						'img' => empty ( $question['img'] ) ? '' : $question['img'],
-						'answers' => $answers,					
-					);
-					
+				//NEW TABLE DOESN'T EXIST, UPGRADE
+				if ( function_exists( 'fca_qc_create_table' ) ) {
+					fca_qc_create_table();
 				}
-				update_post_meta( $post->ID, 'quiz_cat_questions', $new_questions );
+								
+				//convert table format from old format to new
+				fca_qc_upgrade_quiz_tables( $posts );
 				
-			}
-
-			//might as well make a new stats entry for premium while we're at it
-			if ( function_exists( 'fca_qc_insert_quiz_to_db' ) && !defined ( 'fca_qc_disable_activity' ) ) {
-				fca_qc_insert_quiz_to_db( $post->ID );
+				return true;
 			}
 		}
 	}
@@ -179,7 +153,7 @@ if ( !defined ('FCA_QC_PLUGIN_DIR') ) {
 		register_post_type( 'fca_qc_quiz', $args );
 	}
 	add_action ( 'init', 'fca_qc_register_post_type' );
-
+	
 	//CHANGE CUSTOM 'UPDATED' MESSAGES FOR OUR CPT
 	function fca_qc_post_updated_messages( $messages ){
 		
@@ -282,11 +256,12 @@ if ( !defined ('FCA_QC_PLUGIN_DIR') ) {
 				'off_string' =>  __('NO', 'quiz-cat'),
 			);
 			
-			wp_localize_script( 'fca_qc_admin_js', 'adminData', $admin_data ); 
+			wp_localize_script( 'fca_qc_admin_js', 'adminData', $admin_data );
 		}
+
 	}
 	add_action( 'admin_enqueue_scripts', 'fca_qc_admin_cpt_script', 10, 1 );  
-
+	
 	function fca_qc_admin_nav() {
 		global $post;
 		if ( $post->post_type === 'fca_qc_quiz'	 ) {
@@ -300,7 +275,6 @@ if ( !defined ('FCA_QC_PLUGIN_DIR') ) {
 			$html .= '</div>';
 			echo $html;
 		}
-		
 	}
 	add_action( 'edit_form_after_title', 'fca_qc_admin_nav' );	
 
@@ -393,7 +367,7 @@ if ( !defined ('FCA_QC_PLUGIN_DIR') ) {
 	}
 
 	// RENDER A QUESTION META BOX
-	// INPUT: ARRAY->$question [QUESTION, ANSWER, IMG, HINT, WRONG1, WRONG2, WRONG3]
+	// INPUT: ARRAY->$question
 	// OUTPUT: HTML 
 	function fca_qc_render_question( $question, $question_number ) {
 		
@@ -402,11 +376,14 @@ if ( !defined ('FCA_QC_PLUGIN_DIR') ) {
 				'question' => '',
 				'img' => '',
 				'hint' => '',
-				'answers' => ''
+				'answers' => '',
+				'id' => '{{ID}}',
 			);
 		}
-
+		$question['id'] = empty( $question['id'] ) ? '{{ID}}' : $question['id'];
+				
 		$html = "<div class='fca_qc_question_item fca_qc_deletable_item' id='fca_qc_question_$question_number'>";
+			$html .= "<input class='fca_qc_id' name='fca_qc_quiz_questions[$question_number][id]' value='" . $question['id'] . "' hidden >";
 			$html .= "<span class='dashicons dashicons-trash fca_qc_delete_icon fca_qc_delete_button'></span>";
 			$html .= "<h3 class='fca_qc_question_label'><span class='fca_qc_quiz_heading_question_number'>" . __('Question', 'quiz-cat') . ' ' . $question_number . ": </span><span class='fca_qc_quiz_heading_text'>". fca_qc_convert_entities($question['question']) . "</span></h3>";
 				
@@ -427,8 +404,7 @@ if ( !defined ('FCA_QC_PLUGIN_DIR') ) {
 				$html .= "</div >";
 		$html .= "</div >";
 
-
-	return $html;
+		return $html;
 	
 	}
 	
@@ -438,9 +414,13 @@ if ( !defined ('FCA_QC_PLUGIN_DIR') ) {
 	
 		$answer['answer'] = empty ( $answer['answer'] ) ? '' : $answer['answer'];
 		$answer['img'] = empty ( $answer['img'] ) ? '' : $answer['img'];
+		$answer['id'] = empty ( $answer['id'] ) ? '{{ID}}' : $answer['id'];
+		
 		$placeholder = $answer_number == 1 ? __('e.g. No', 'quiz-cat') :  __('e.g. Yes', 'quiz-cat');
 		$html .= "<div class='fca_qc_answer_input_div fca_qc_deletable_item'>";
-					
+		
+			$html .= "<input class='fca_qc_id' name='fca_qc_quiz_questions[$question_number][answers][$answer_number][id]' value='" . $answer['id'] . "' hidden >";
+			
 			if ( $answer_number == 1 ) {
 				$html .= "<label class='fca_qc_admin_label'>" . __('Correct Answer', 'quiz-cat') . "</label>";
 			} else {
@@ -451,7 +431,6 @@ if ( !defined ('FCA_QC_PLUGIN_DIR') ) {
 			}
 			
 			$html .= "<textarea placeholder='$placeholder' class='fca_qc_question_texta fca_qc_question_texta' name='fca_qc_quiz_questions[$question_number][answers][$answer_number][answer]'>" . $answer['answer']  ."</textarea><br>";
-			
 			
 		$html .= "</div>";	
 		
@@ -499,6 +478,7 @@ if ( !defined ('FCA_QC_PLUGIN_DIR') ) {
 				'img' => '',
 			);
 		}
+		
 		
 		$html = "<div class='fca_qc_result_item fca_qc_deletable_item' id='fca_qc_result_$result_number'>";
 			$html .= "<span class='dashicons dashicons-trash fca_qc_delete_icon fca_qc_delete_button'></span>";
@@ -600,12 +580,12 @@ if ( !defined ('FCA_QC_PLUGIN_DIR') ) {
 			return $post_id;
 		}
 		
-		if ( function_exists( 'fca_qc_insert_quiz_to_db' ) && !defined ( 'fca_qc_disable_activity' ) ) {
-			fca_qc_insert_quiz_to_db( $post_id );
-		}
-		
 		//ONLY DO OUR STUFF IF ITS A REAL SAVE, NOT A NEW IMPORTED ONE
 		if ( array_key_exists ( 'fca_qc_quiz_preview_url', $_POST ) ) {
+			
+			if ( function_exists( 'fca_qc_insert_quiz_to_db' ) && !defined ( 'fca_qc_disable_activity' ) ) {
+				fca_qc_insert_quiz_to_db( $post_id );
+			}		
 			
 			//SAVING META DATA ( DESCRIPTION, IMAGE )
 			$meta_fields = array (
@@ -633,11 +613,13 @@ if ( !defined ('FCA_QC_PLUGIN_DIR') ) {
 			forEach ($_POST['fca_qc_quiz_questions'] as $question) {
 				$questions[$i]['question'] = empty( $question['question'] ) ? '' : fca_qc_escape_input( $question['question'] );
 				$questions[$i]['img'] = empty( $question['img'] ) ? '' : fca_qc_escape_input( $question['img'] );
+				$questions[$i]['id'] = empty( $question['id'] ) ? '' : $question['id'];
 				
 				$j = 0;
 				forEach ($question['answers'] as $answer) {
 					$questions[$i]['answers'][$j]['answer'] = empty( $answer['answer'] ) ? '' : fca_qc_escape_input( $answer['answer'] );
 					$questions[$i]['answers'][$j]['img'] = empty( $answer['img'] ) ? '' : fca_qc_escape_input( $answer['img'] );
+					$questions[$i]['answers'][$j]['id'] =  empty( $answer['id'] ) ? '' : $answer['id'];
 					$j++;
 				}
 				$i++;
@@ -656,7 +638,6 @@ if ( !defined ('FCA_QC_PLUGIN_DIR') ) {
 				$results[$i]['img'] = fca_qc_escape_input( $_POST['fca_qc_quiz_result_image_src'][$i] );
 				$results[$i]['min'] = intval ( fca_qc_escape_input( $_POST['fca_qc_result_min'][$i] ) );
 				$results[$i]['max'] = intval ( fca_qc_escape_input( $_POST['fca_qc_result_max'][$i] ) );
-							
 			}
 						
 			update_post_meta ( $post_id, 'quiz_cat_results', $results );
@@ -745,11 +726,11 @@ if ( !defined ('FCA_QC_PLUGIN_DIR') ) {
 	add_action( 'wp_enqueue_scripts', 'fca_qc_suppress_post_title' );
 
 	function fca_qc_do_quiz( $atts ) {
-	
+
 		if ( !empty ( $atts[ 'id' ] ) ) {
-			
-			
+						
 			$post_id = intVal ( $atts[ 'id' ] );
+			
 			$quiz_meta = get_post_meta ( $post_id, 'quiz_cat_meta', true );
 			$quiz_meta['title'] = get_the_title ( $post_id );
 			$questions = get_post_meta ( $post_id, 'quiz_cat_questions', true );
@@ -757,8 +738,7 @@ if ( !defined ('FCA_QC_PLUGIN_DIR') ) {
 			$quiz_settings = get_post_meta ( $post_id, 'quiz_cat_settings', true );
 			
 			if ( !$quiz_meta || !$questions ) {
-				echo '<p>Quiz Cat: ' . $quiz_text_strings[ 'no_quiz_found' ] . '</p>';
-				return false;
+				return '<p>Quiz Cat: ' . __('No Quiz found', 'quiz-cat') . '</p>';
 			}
 			
 			wp_enqueue_script( 'jquery' );
@@ -791,6 +771,13 @@ if ( !defined ('FCA_QC_PLUGIN_DIR') ) {
 				unset( $optin_settings['aweber_key'] );
 			}
 			
+			if ( !empty( $optin_settings['activecampaign_key'] ) ) { 
+				unset( $optin_settings['activecampaign_key'] );
+			}
+			if ( !empty( $optin_settings['drip_key'] ) ) { 
+				unset( $optin_settings['drip_key'] );
+			}
+			
 			$quiz_text_strings = fca_qc_set_quiz_text_strings( $atts );
 						
 			//SEND JS THE DATA BUT CONVERT ANY ESCAPED THINGS BACK TO NORMAL CHARACTERS
@@ -809,7 +796,15 @@ if ( !defined ('FCA_QC_PLUGIN_DIR') ) {
 				'ajaxurl' => admin_url('admin-ajax.php'),
 				'default_img' => plugins_url( 'assets/quizcat-240x240.png', __FILE__ )
 			);
-			
+			if ( is_user_logged_in() ) {
+				$user = wp_get_current_user();
+				if ( $user->ID !== 0 ) {
+					$quiz_data['user'] = array (
+						'name' => $user->user_firstname,
+						'email' => $user->user_email,
+					);
+				}
+			}
 			wp_localize_script( 'fca_qc_quiz_js', "quizData_$post_id", $quiz_data );
 			
 			//ADD IMPRESSION
@@ -855,7 +850,7 @@ if ( !defined ('FCA_QC_PLUGIN_DIR') ) {
 			
 			return ob_get_clean();
 		} else {
-			return '<p>Quiz Cat: ' . $quiz_text_strings[ 'no_quiz_found' ] . '</p>';
+			return '<p>Quiz Cat: ' . __('No Quiz found', 'quiz-cat') . '</p>';
 		}
 	}
 	add_shortcode( 'quiz-cat', 'fca_qc_do_quiz' );
@@ -1022,4 +1017,128 @@ if ( !defined ('FCA_QC_PLUGIN_DIR') ) {
 		return "<span class='$icon fca_qc_tooltip' title='" . htmlentities($text) . "'></span>";
 	}
 	
+	function fca_qc_convert_question_meta( $posts ) {
+		
+		forEach ( $posts as $post ) {
+			
+			$settings = get_post_meta( $post->ID, 'quiz_cat_settings', true );
+			
+			//set default quiz type to 'mc' for multiple choice
+			$settings['quiz_type'] = empty ( $settings['quiz_type'] ) ? 'mc' : $settings['quiz_type'];
+			
+			update_post_meta( $post->ID, 'quiz_cat_settings', $settings );
+			
+			$questions = get_post_meta( $post->ID, 'quiz_cat_questions', true );
+
+			if ( !empty ( $questions[0]['answer'] ) ) {
+				$new_questions = array();
+				
+				foreach ( $questions as $question ) {
+					
+					$answers = array(
+						array(
+							'answer' => empty ( $question['answer'] ) ? '' : $question['answer'],
+							'img' => empty ( $question['imgAnswer1'] ) ? '' : $question['imgAnswer1'],
+						)
+					);
+					
+					for ( $i = 1; $i < 4; $i++ ) {
+						$answerKey = "wrong$i";
+						$imgKey = "imgAnswer" . ( $i + 1 );
+						if ( !empty ( $question[$answerKey] ) OR !empty( $question[$imgKey] ) ) {
+							$answers[] = array(
+								'answer' => empty ( $question[$answerKey] ) ? '' : $question[$answerKey],
+								'img' => empty ( $question[$imgKey] ) ? '' : $question[$imgKey],
+							);
+						}
+					}
+						
+					$new_questions[] = array(
+						'question' => empty ( $question['question'] ) ? '' : $question['question'],
+						'img' => empty ( $question['img'] ) ? '' : $question['img'],
+						'answers' => $answers,					
+					);
+					
+				}
+				update_post_meta( $post->ID, 'quiz_cat_questions', $new_questions );
+				
+			}
+
+		}
+	}
+	
+	function fca_qc_convert_csv() {
+		
+		$meta_version = get_option ( 'fca_qc_meta_version' );
+		
+		if ( $meta_version !== '1.3.1' ) {
+			
+			$upload_dir = wp_upload_dir();
+			$upload_dir = $upload_dir['basedir'] . '/quizcat/*';
+			
+			//CONVERT COMMAS TO TABS
+			
+			forEach ( glob($upload_dir) as $file ) {
+				$str = file_get_contents ( $file );
+				$str = str_replace( ",", "\t", $str );
+				$str = html_entity_decode( $str, ENT_QUOTES, 'UTF-8');
+				file_put_contents( $file, $str );
+			}
+			
+			update_option( 'fca_qc_meta_version', '1.3.1');
+		
+		}
+
+	}	
+	
+	function fca_qc_upgrade_quiz_tables ( $posts ) {
+		
+		global $wpdb;
+		
+		$old_table_name = $wpdb->prefix.'fca_qc_activity';
+		
+		$has_old_table = $wpdb->get_var("SHOW TABLES LIKE '$old_table_name'") !== null;
+		
+		$post_count = count ( $posts );
+		
+		$rows = 0;
+		
+		forEach ( $posts as $post ) {
+			
+			$quiz_id = $post->ID;
+				
+			//CREATE A ROW IN THE ACTIVITY TABLE FOR EACH QUIZ IF IT DOESNT EXIST
+			if ( function_exists( 'fca_qc_insert_quiz_to_db' ) && !defined ( 'fca_qc_disable_activity' ) ) {
+				fca_qc_insert_quiz_to_db( $quiz_id );
+			}
+			
+			if( $has_old_table ) {
+			
+				$sql = esc_sql ("SELECT * FROM `$old_table_name` WHERE quiz_id = $quiz_id");
+				$activity = $wpdb->get_row( $sql, ARRAY_A );
+				
+				$newActivity = array();
+				
+				$newActivity['impressions'] = empty ( $activity['impressions'] ) ? 0 : $activity['impressions'];
+				$newActivity['starts'] = empty ( $activity['starts'] ) ? 0 : $activity['starts'];
+				$newActivity['optins'] = empty ( $activity['optins'] ) ? 0 : $activity['optins'];
+				$newActivity['completions'] = empty ( $activity['completions'] ) ? 0 : $activity['completions'];
+				$newActivity['shares'] = empty ( $activity['shares'] ) ? 0 : $activity['shares'];
+				
+				$results = empty ( $activity['results'] ) ? array() : json_decode ( $activity['results'] );
+				
+				$rows += $wpdb->update( fca_qc_table(), array('stats' => json_encode ( $newActivity ), 'results' => json_encode ( $results ) ), array('quiz_id' => $quiz_id) );
+			
+			}
+
+		}
+		
+		if ( $rows === $post_count && $has_old_table ) {
+			//CONVERSION OK, REMOVE OLD TABLE
+			$sql = esc_sql ("DROP TABLE `$old_table_name`");
+			$rows = $wpdb->query($sql);
+		}
+
+		
+	}
 }

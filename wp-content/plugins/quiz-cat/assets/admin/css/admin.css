@@ -1,3 +1,9 @@
+/* NAVIGATION */
+
+#qc-nav {
+	
+}
+
 img[src=''] {
 	display: none !important;
 }
@@ -250,7 +256,12 @@ img.fca_qc_image:hover + div.fca_qc_image_hover_controls {
 	top: -3px;
 	font-style: italic;
 }
-
+.fca_qc_tag_info {
+	margin: 5px 0;
+}
+.fca_qc_tag_info a{
+	text-decoration: none;
+}
 /* SIDEBAR */
 .metabox-holder .postbox-container .empty-container {
 	border: none;

@@ -31,7 +31,6 @@ jQuery(document).ready(function($){
 	if ( $( '.fca_qc_result_input_div' ).length > 1 ) {
 		$( '.fca_qc_result_input_div' ).hide()
 	}
-
 	
 	//SET UP SAVE AND PREVIEW BUTTONS, THEN HIDE THE PUBLISHING METABOX
 	var saveButton = '<button type="submit" class="button-primary" id="fca_qc_submit_button">' + adminData.save_string + '</buttton>'
@@ -80,10 +79,15 @@ jQuery(document).ready(function($){
 		
 	})
 	
+	// ACTIVATE TOOLTIPS
+	jQuery.widget.bridge( 'jQueryUITooltipFCAQC', jQuery.ui.tooltip )
+	$('.fca_qc_tooltip').jQueryUITooltipFCAQC({
+		position: { my: 'left', at: 'right+2' }
+	})
+		
 	//SHOW OUR MAIN DIV AFTER WE'RE DONE WITH DOM CHANGES
 	$( '#wpbody-content').show()
 
-	
 	////////////////
 	// ON CLICK EVENT HANDLERS
 	////////////////
@@ -121,6 +125,7 @@ jQuery(document).ready(function($){
 		$( '.fca_qc_question_input_div' ).hide()
 
 		var div_to_append = adminData.questionDiv.replace(/{{QUESTION_NUMBER}}/g, question_number)
+		div_to_append = div_to_append.replace(/{{ID}}/g, fca_qc_new_GUID() )
 		
 		$(this).siblings( '.fca_qc_sortable_questions' ).append(div_to_append)
 		
@@ -143,6 +148,7 @@ jQuery(document).ready(function($){
 		
 		$( '.fca_qc_result_input_div' ).hide()
 		var div_to_append = adminData.resultDiv.replace(/{{RESULT_NUMBER}}/g, result_number )
+		div_to_append = div_to_append.replace(/{{ID}}/g, fca_qc_new_GUID() )
 		
 		$(this).siblings('.fca_qc_sortable_results').append(div_to_append)
 		
@@ -185,11 +191,7 @@ jQuery(document).ready(function($){
 		setConfirmUnload( true )
 	})
 	
-	// ACTIVATE TOOLTIPS
-	jQuery.widget.bridge( 'jQueryUITooltipFCAQC', jQuery.ui.tooltip )
-	$(document).jQueryUITooltipFCAQC({
-		position: { my: 'left', at: 'right+2' }
-	})
+
 })
 
 //GLOBAL FUNCTIONS
@@ -206,6 +208,7 @@ function attach_add_answer_button_handlers_free() {
 		
 		var div_to_append = adminData.answerDiv.replace(/{{ANSWER_NUMBER}}/g, answer_number )
 		div_to_append = div_to_append.replace(/{{QUESTION_NUMBER}}/g, question_number )
+		div_to_append = div_to_append.replace(/{{ID}}/g, fca_qc_new_GUID() )
 		
 		$(this).before(div_to_append)
 		attach_delete_button_handlers()
@@ -453,4 +456,21 @@ function add_drag_and_drop_sort() {
 		setConfirmUnload( true )
 	})
 
+}
+
+//GUID Generation ( http://stackoverflow.com/questions/105034/create-guid-uuid-in-javascript/21963136#21963136 )
+var fca_qc_hash_seed = []
+for (var i=0; i<256; i++) { 
+	fca_qc_hash_seed[i] = (i<16?'0':'')+(i).toString(16)
+}
+function fca_qc_new_GUID() {
+  var d0 = Math.random()*0x100000000>>>0
+  var d1 = Math.random()*0x100000000>>>0
+  var d2 = Math.random()*0x100000000>>>0
+  var d3 = Math.random()*0x100000000>>>0
+  
+  return fca_qc_hash_seed[d0&0xff]+fca_qc_hash_seed[d0>>8&0xff]+fca_qc_hash_seed[d0>>16&0xff]+fca_qc_hash_seed[d0>>24&0xff]+'-'+
+    fca_qc_hash_seed[d1&0xff]+fca_qc_hash_seed[d1>>8&0xff]+'-'+fca_qc_hash_seed[d1>>16&0x0f|0x40]+fca_qc_hash_seed[d1>>24&0xff]+'-'+
+    fca_qc_hash_seed[d2&0x3f|0x80]+fca_qc_hash_seed[d2>>8&0xff]+'-'+fca_qc_hash_seed[d2>>16&0xff]+fca_qc_hash_seed[d2>>24&0xff]+
+    fca_qc_hash_seed[d3&0xff]+fca_qc_hash_seed[d3>>8&0xff]+fca_qc_hash_seed[d3>>16&0xff]+fca_qc_hash_seed[d3>>24&0xff]
 }
