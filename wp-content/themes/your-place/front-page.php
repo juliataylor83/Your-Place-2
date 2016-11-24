@@ -47,7 +47,7 @@ get_header(); ?>
 						<p><?php echo $column_2_text; ?></p>
 						<a class="button" href="<?php echo home_url(); ?>/about">Family Photos</a>
 						<p><?php echo $column_2_text_2; ?></p>
-						<a class="button" href="http://yourplace.staging.wpengine.com/wp-content/uploads/2016/10/Your-Place-Volunteer-Application-Form.pdf" target="_blank">Volunteer</a>
+						<a class="button" href="http://yourplacegrimsby.com/wp-content/uploads/2016/10/Your-Place-Volunteer-Application-Form.pdf" target="_blank">Volunteer</a>
 					</div>
 					<div class="column3">
 						<h2><?php echo $column_3_title; ?></h2>

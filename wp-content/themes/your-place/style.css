@@ -1003,6 +1003,16 @@ textarea {
 	text-decoration: none;
 }
 
+.button:focus {
+	color: white! important;
+	text-decoration: none;
+}
+
+.button:active {
+	color: white! important;
+	text-decoration: none;
+}
+
 .homepage-weekly-activities {
 	margin-right: 150px;
 }
@@ -1125,71 +1135,6 @@ textarea {
 
 .entry-content-history p:nth-child(1) {
 	float: left;
-	width: 47%;
-	font-size: 24px;
-	text-align: center;
-	margin: 40px 5px 0 0;
-	padding-left: 70px;
-}
-
-.entry-content-history figure:nth-child(2) {
-	float: right;
-	width: 47%;
-	margin: 0 30px 0 5px;
-}
-
-.entry-content-history p:nth-child(3) {
-	float: right;
-	width: 47%;
-	font-size: 24px;
-	text-align: center;
-	margin: 40px 0 0 5px;
-	padding-right: 90px;
-	clear: both;
-}
-
-.entry-content-history figure:nth-child(4) {
-	float: left;
-	width: 47%;
-	margin: 0 5px 0 30px;
-	padding-left: 40px;
-}
-
-.entry-content-history p:nth-child(5) {
-	float: left;
-	width: 47%;
-	font-size: 24px;
-	text-align: center;
-	margin: 40px 5px 0 0;
-	padding-left: 70px;
-	clear: both;
-}
-
-.entry-content-history figure:nth-child(6) {
-	float: right;
-	width: 47%;
-	margin: 10px 30px 0 5px;
-}
-
-.entry-content-history p:nth-child(7) {
-	float: right;
-	width: 51%;
-	font-size: 24px;
-	text-align: center;
-	margin: 40px 0 0 5px;
-	padding-right: 120px;
-	clear: both;
-}
-
-.entry-content-history figure:nth-child(8) {
-	float: left;
-	width: 44%;
-	margin: 0 5px 0 30px;
-	padding-left: 100px;
-}
-
-.entry-content-history p:nth-child(9) {
-	float: left;
 	width: 49%;
 	font-size: 24px;
 	text-align: center;
@@ -1198,14 +1143,14 @@ textarea {
 	clear: both;
 }
 
-.entry-content-history figure:nth-child(10) {
+.entry-content-history figure:nth-child(2) {
 	float: right;
 	width: 46%;
 	margin: 10px 30px 0 5px;
 	padding-left: 50px;
 }
 
-.entry-content-history p:nth-child(11) {
+.entry-content-history p:nth-child(3) {
 	float: right;
 	width: 55%;
 	font-size: 24px;
@@ -1215,14 +1160,14 @@ textarea {
 	clear: both;
 }
 
-.entry-content-history figure:nth-child(12) {
+.entry-content-history figure:nth-child(4) {
 	float: left;
 	width: 40%;
 	margin: 40px 5px 0 30px;
 	padding-left: 90px;
 }
 
-.entry-content-history p:nth-child(13) {
+.entry-content-history p:nth-child(5) {
 	float: left;
 	width: 55%;
 	font-size: 24px;
@@ -1232,14 +1177,14 @@ textarea {
 	clear: both;
 }
 
-.entry-content-history figure:nth-child(14) {
+.entry-content-history figure:nth-child(6) {
 	float: right;
 	width: 40%;
 	margin: 10px 30px 20px 5px;
 	padding-left: 50px;
 }
 
-.entry-content-history p:nth-child(15) {
+.entry-content-history p:nth-child(7) {
 	float: right;
 	width: 55%;
 	font-size: 24px;
@@ -1249,11 +1194,76 @@ textarea {
 	clear: both;
 }
 
-.entry-content-history figure:nth-child(16) {
+.entry-content-history figure:nth-child(8) {
 	float: left;
 	width: 40%;
 	margin: 30px 5px 40px 30px;
 	padding-left: 140px;
+}
+
+.entry-content-history p:nth-child(9) {
+	float: left;
+	width: 47%;
+	font-size: 24px;
+	text-align: center;
+	margin: 40px 5px 0 0;
+	padding-left: 70px;
+}
+
+.entry-content-history figure:nth-child(10) {
+	float: right;
+	width: 47%;
+	margin: 0 30px 0 5px;
+}
+
+.entry-content-history p:nth-child(11) {
+	float: right;
+	width: 47%;
+	font-size: 24px;
+	text-align: center;
+	margin: 40px 0 0 5px;
+	padding-right: 90px;
+	clear: both;
+}
+
+.entry-content-history figure:nth-child(12) {
+	float: left;
+	width: 47%;
+	margin: 0 5px 0 30px;
+	padding-left: 40px;
+}
+
+.entry-content-history p:nth-child(13) {
+	float: left;
+	width: 47%;
+	font-size: 24px;
+	text-align: center;
+	margin: 40px 5px 0 0;
+	padding-left: 70px;
+	clear: both;
+}
+
+.entry-content-history figure:nth-child(14) {
+	float: right;
+	width: 47%;
+	margin: 10px 30px 0 5px;
+}
+
+.entry-content-history p:nth-child(15) {
+	float: right;
+	width: 51%;
+	font-size: 24px;
+	text-align: center;
+	margin: 40px 0 0 5px;
+	padding-right: 120px;
+	clear: both;
+}
+
+.entry-content-history figure:nth-child(16) {
+	float: left;
+	width: 44%;
+	margin: 0 5px 30px 30px;
+	padding-left: 100px;
 }
 
 .entry-content-history p:nth-child(17) {
